@@ -1,8 +1,12 @@
 import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r132/build/three.module.js';
+import { GLTFLoader } from '/three.js-master/examples/jsm/loaders/GLTFLoader.js';
 
 function main() {
 const canvas = document.querySelector('#c');
 const renderer = new THREE.WebGLRenderer({canvas});
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize( window.innerWidth, window.innerHeight);
+renderer.outputEncoding = THREE.sRGBEncoding;
 
 //Define perspective Camera
 const fov = 75;
@@ -49,13 +53,14 @@ function makeInstance(geometry, color, x) {
 
 //Make more boxes, save them in an array
 const cubes = [
-    makeInstance(geometry, 0x44aa88,  0),
+    makeInstance(geometry, 0x44aa88,  -4),
     makeInstance(geometry, 0x8844aa, -2),
     makeInstance(geometry, 0xaa8844,  2),
+    makeInstance(geometry, 0x44aa88, 4),
 ];
 
 //Create a Mesh. In three a mesh represents the combination of three things: geometry, material, position
-const cube = new THREE.Mesh(geometry, material);
+//const cube = new THREE.Mesh(geometry, material);
 
 //Add mesh to scene
 //scene.add(cube);
@@ -63,6 +68,63 @@ const cube = new THREE.Mesh(geometry, material);
 //render scene
 //renderer.render(scene, camera);
 
+// instantiate a texture loader
+const textureLoader = new THREE.TextureLoader();
+
+// load a resource
+textureLoader.load(
+	// resource URL
+	'/textures/Clap_Trap_Texture_Body.png',
+
+	// onLoad callback
+	function ( texture ) {
+		// in this example we create the material when the texture is loaded
+		const ClapTrapTextureMaterial = new THREE.MeshBasicMaterial( {
+			map: texture
+		 } );
+	},
+
+	// onProgress callback currently not supported
+	undefined,
+
+	// onError callback
+	function ( err ) {
+		console.error( 'An error happened when loading a texture.' );
+	}
+);
+
+// Instantiate a loader
+const gltfLoader = new GLTFLoader();
+
+// Load a glTF resource
+gltfLoader.load(
+	// resource URL
+	'Claptrap.gltf',
+	// called when the resource is loaded
+	function ( gltf ) {
+
+		scene.add( gltf.scene );
+
+		gltf.animations; // Array<THREE.AnimationClip>
+		gltf.scene; // THREE.Group
+		gltf.scenes; // Array<THREE.Group>
+		gltf.cameras; // Array<THREE.Camera>
+		gltf.asset; // Object
+
+	},
+	// called while loading is progressing
+	function ( xhr ) {
+
+		console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded.' + ' ' + 'The gltf Object has been successfully loaded.' );
+
+	},
+	// called when loading has errors
+	function ( error ) {
+
+		console.log( 'An error happened when loading the gltf object.' );
+
+	}
+);
 
 //Animation Rendering
 function render(time) {
@@ -73,7 +135,7 @@ function render(time) {
         cube.rotation.x = rot;
         cube.rotation.y = rot;
       });
-   
+
     renderer.render(scene, camera);
    
     requestAnimationFrame(render);
