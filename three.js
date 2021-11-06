@@ -1,4 +1,5 @@
-import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r132/build/three.module.js';
+import * as THREE from '/three.js-master/build/three.module.js';
+import {OrbitControls} from '/three.js-master/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from '/three.js-master/examples/jsm/loaders/GLTFLoader.js';
 
 function main() {
@@ -10,12 +11,16 @@ renderer.outputEncoding = THREE.sRGBEncoding;
 
 //Define perspective Camera
 const fov = 75;
-const aspect = 2;  // the canvas default
+const aspect = window.innerWidth / window.innerHeight;  // the canvas default
 const near = 0.1;
-const far = 5;
+const far = 100;
 const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
 //Camera position needs to be a bit further of the origin in order to see the object
 camera.position.z = 3;
+
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(0, 0, 0);
+controls.update();
 
 //Add a scene. A scene has all the objects, that we want to render -> like in Blender
 const scene = new THREE.Scene();
@@ -25,14 +30,16 @@ const scene = new THREE.Scene();
     const color = 0xFFFFFF;
     const intensity = 1;
     const light = new THREE.DirectionalLight(color, intensity);
+	const backlight = new THREE.DirectionalLight(color, 1);
+	backlight.position.set(1,-2,-4);
     light.position.set(-1, 2, 4);
     scene.add(light);
 }
 
 //Generate a box
-const boxWidth =1;
-const boxHeight = 1;
-const boxDepth = 1;
+const boxWidth =0.1;
+const boxHeight = 0.1;
+const boxDepth = 0.1;
 const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
 //set a basic material
 //Basic Material is not affected by light instead use MeshPhongMaterial
@@ -53,10 +60,10 @@ function makeInstance(geometry, color, x) {
 
 //Make more boxes, save them in an array
 const cubes = [
-    makeInstance(geometry, 0x44aa88,  -4),
+    makeInstance(geometry, 0x44aa88,  -1),
     makeInstance(geometry, 0x8844aa, -2),
     makeInstance(geometry, 0xaa8844,  2),
-    makeInstance(geometry, 0x44aa88, 4),
+    makeInstance(geometry, 0x44aa88, 1),
 ];
 
 //Create a Mesh. In three a mesh represents the combination of three things: geometry, material, position
@@ -68,32 +75,8 @@ const cubes = [
 //render scene
 //renderer.render(scene, camera);
 
-// instantiate a texture loader
-const textureLoader = new THREE.TextureLoader();
-
-// load a resource
-textureLoader.load(
-	// resource URL
-	'/textures/Clap_Trap_Texture_Body.png',
-
-	// onLoad callback
-	function ( texture ) {
-		// in this example we create the material when the texture is loaded
-		const ClapTrapTextureMaterial = new THREE.MeshBasicMaterial( {
-			map: texture
-		 } );
-	},
-
-	// onProgress callback currently not supported
-	undefined,
-
-	// onError callback
-	function ( err ) {
-		console.error( 'An error happened when loading a texture.' );
-	}
-);
-
-// Instantiate a loader
+// Instantiate a GLTF loader
+var model;
 const gltfLoader = new GLTFLoader();
 
 // Load a glTF resource
@@ -102,14 +85,17 @@ gltfLoader.load(
 	'Claptrap.gltf',
 	// called when the resource is loaded
 	function ( gltf ) {
-
-		scene.add( gltf.scene );
-
-		gltf.animations; // Array<THREE.AnimationClip>
-		gltf.scene; // THREE.Group
-		gltf.scenes; // Array<THREE.Group>
-		gltf.cameras; // Array<THREE.Camera>
-		gltf.asset; // Object
+		console.log( gltf );
+		const claptrapModel = gltf.scene;
+		model = gltf.scene;
+		claptrapModel.scale.set(0.5,0.5,0.5);
+		claptrapModel.position.xyz=0;
+		scene.add( claptrapModel );
+		// gltf.animations; // Array<THREE.AnimationClip>
+		// gltf.scene; // THREE.Group
+		// gltf.scenes; // Array<THREE.Group>
+		// gltf.cameras; // Array<THREE.Camera>
+		// gltf.asset; // Object
 
 	},
 	// called while loading is progressing
@@ -135,6 +121,9 @@ function render(time) {
         cube.rotation.x = rot;
         cube.rotation.y = rot;
       });
+	if (model) {
+	model.rotation.y += 0.01;
+	}
 
     renderer.render(scene, camera);
    
