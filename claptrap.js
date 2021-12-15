@@ -149,27 +149,27 @@ function init() {
   //Function to add claptraps
   function onSelect() {
     if (findTarget.visible) {
-      //gClaptrapModel.position.setFromMatrixPosition(findTarget.matrix);
+      gClaptrapModel.position.setFromMatrixPosition(findTarget.matrix);
       //gClaptrapModel.position.z = findTarget.matrix.z + 1;
-      //scene.add(gClaptrapModel);
-      const material = new THREE.MeshPhongMaterial({
-        color: 0xffffff * Math.random(),
-      });
-      const mesh = new THREE.Mesh(gClaptrapModel, material);
-      mesh.position.setFromMatrixPosition(findTarget.matrix);
-      mesh.scale.y = Math.random() * 2 + 1;
-      scene.add(mesh);
-      //   const newClaptrap = new THREE.Mesh(gClaptrapModel);
-      //   newClaptrap.position.setFromMatrixPosition(findTarget.matrix);
-      //   scene.add(newClaptrap);
+      scene.add(gClaptrapModel);
+      // const material = new THREE.MeshPhongMaterial({
+      //   color: 0xffffff * Math.random(),
+      // });
+      // const mesh = new THREE.Mesh(gClaptrapModel, material);
+      // mesh.position.setFromMatrixPosition(findTarget.matrix);
+      // mesh.scale.y = Math.random() * 2 + 1;
     }
   }
+
+  //Function to intialize movement
+  setRandomPosition();
 
   //Add controller
   //Code from WebXR Examples Hit-Test.
   //https://github.com/mrdoob/three.js/blob/master/examples/webxr_ar_hittest.html
   controller = renderer.xr.getController(0);
   controller.addEventListener("select", onSelect);
+  controller.addEventListener("select", setRandomPosition);
   scene.add(controller);
 
   //Add TargetHitter
@@ -192,14 +192,27 @@ function onWindowResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+function setRandomPosition() {
+  direction = new THREE.Vector3(
+    Math.random() * 2 - 1,
+    0,
+    Math.random() * 2 - 1
+  ).normalize();
+  console.log(direction);
+}
+
 function animate() {
   renderer.setAnimationLoop(draw);
 } //end function animate()
 
 //Settings for Claptrap Animation
-var kmh = 0.05; //set pace
+let kmh = 0.05; //set pace
 var borderLeft = -5.0; //set borderLeft
 var borderRight = 5.0; //set borderRight
+let direction;
+let delta;
+var clock = new THREE.Clock();
+let shift = new THREE.Vector3();
 
 // DRAW
 function draw(time, frame) {
@@ -212,21 +225,29 @@ function draw(time, frame) {
   }
 
   //Animation for Claptrap Body
+  //Quelle Code: https://jsfiddle.net/prisoner849/qqoouo2w/
+  //noch fehlerhaft, Fehlermeldung in Zeile 200 setRandomPosition
   if (gClaptrapModel) {
-    //Initialize animation to move right
-    gClaptrapModel.position.x += kmh;
-    //if Claptrap is at a certain x-Position, turn around
-    if (gClaptrapModel.position.x <= borderLeft) {
-      kmh = Math.abs(kmh);
-      gClaptrapModel.rotation.y += Math.PI;
-      //changeLight(); //farbe wird zu zufälligen farbwert geändert
-    } else if (gClaptrapModel.position.x >= borderRight) {
-      //if Claptrap is at a certain x-Position, turn around
-      kmh = -Math.abs(kmh);
-      gClaptrapModel.rotation.y += Math.PI; //dreht um 180grad um
-      //changeLight();//farbe wird zu zufälligen farbwert geändert
-    }
+    delta = clock.getDelta();
+    shift.copy(direction).multiplyScalar(delta * kmh);
+    gClaptrapModel.position.add(shift);
+    //gClaptrapModel.translateZ(10); Frage: Richtung, in die Claptrap guckt anpassen
   }
+  // if (gClaptrapModel) {
+  //   //Initialize animation to move right
+  //   gClaptrapModel.position.x += kmh;
+  //   //if Claptrap is at a certain x-Position, turn around
+  //   if (gClaptrapModel.position.x <= borderLeft) {
+  //     kmh = Math.abs(kmh);
+  //     gClaptrapModel.rotation.y += Math.PI;
+  //     //changeLight(); //farbe wird zu zufälligen farbwert geändert
+  //   } else if (gClaptrapModel.position.x >= borderRight) {
+  //     //if Claptrap is at a certain x-Position, turn around
+  //     kmh = -Math.abs(kmh);
+  //     gClaptrapModel.rotation.y += Math.PI; //dreht um 180grad um
+  //     //changeLight();//farbe wird zu zufälligen farbwert geändert
+  //   }
+  // }
 
   //Rotation of the tire
   var tireRotationSpeed = 0.1;
@@ -282,7 +303,6 @@ function draw(time, frame) {
 
   //Render scene
   renderer.render(scene, camera);
-  //A Request to the browser, that you want to animate something
 
   // light.position.x = 20*Math.cos(time);
   // light.position.y = 20*Math.sin(time);
