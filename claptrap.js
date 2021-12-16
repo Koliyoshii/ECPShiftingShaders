@@ -10,6 +10,13 @@ let hitTestSource = null;
 let hitTestSourceRequested = false;
 let controller;
 
+//Settings for Claptrap Animation
+let kmh = 0.05; //set pace
+let direction = new THREE.Vector3();
+let delta;
+var clock = new THREE.Clock();
+let shift = new THREE.Vector3();
+
 init();
 animate();
 
@@ -69,10 +76,8 @@ function init() {
     ARButton.createButton(renderer, { requiredFeatures: ["hit-test"] })
   );
 
-  // GEOMETRY
+  // GEOMETRY gltf Loader
   const gltfLoader = new GLTFLoader();
-
-  //Load claptrap
   gltfLoader.load(
     // resource URL
     "./models/claptrapBody.gltf",
@@ -81,12 +86,12 @@ function init() {
       console.log(gltf);
       gClaptrapModel = gltf.scene;
       gClaptrapModel.scale.set(0.05, 0.05, 0.05); //scale 3D model
-      //gClaptrapModel.rotation.y = Math.PI / 2; //rotate 180 degrees
+      gClaptrapModel.rotateY(Math.PI / 4); //rotate 180 degrees
 
       // Add coordinate systems and plane normal
       const axesHelperScene = new THREE.AxesHelper(5);
       gClaptrapModel.add(axesHelperScene);
-      //gClaptrapModel.add(positionalSound); //Sound wird hinzugefügt
+      gClaptrapModel.add(positionalSound); //Sound wird hinzugefügt
 
       // Load Claptrap Tire
       gltfLoader.load(
@@ -140,36 +145,33 @@ function init() {
     }
   );
 
-  const geometry = new THREE.CylinderGeometry(0.1, 0.1, 0.2, 32).translate(
-    0,
-    0.1,
-    0
-  );
+  //Init function addSound
+  //Implement sound
+  // create an AudioListener and add it to the camera
+  const listener = new THREE.AudioListener();
+  camera.add(listener);
 
-  //Function to add claptraps
-  function onSelect() {
-    if (findTarget.visible) {
-      gClaptrapModel.position.setFromMatrixPosition(findTarget.matrix);
-      //gClaptrapModel.position.z = findTarget.matrix.z + 1;
-      scene.add(gClaptrapModel);
-      // const material = new THREE.MeshPhongMaterial({
-      //   color: 0xffffff * Math.random(),
-      // });
-      // const mesh = new THREE.Mesh(gClaptrapModel, material);
-      // mesh.position.setFromMatrixPosition(findTarget.matrix);
-      // mesh.scale.y = Math.random() * 2 + 1;
-    }
-  }
+  // create a global audio source
+  const sound = new THREE.Audio(listener);
 
-  //Function to intialize movement
-  setRandomPosition();
+  // create the PositionalAudio object (passing in the listener)
+  const positionalSound = new THREE.PositionalAudio(listener);
+
+  // load a sound and set it as the PositionalAudio object's buffer
+  const positionalAudioLoader = new THREE.AudioLoader();
+  positionalAudioLoader.load("sounds/ende.wav", function (buffer) {
+    positionalSound.setBuffer(buffer);
+    positionalSound.setRefDistance(1);
+    positionalSound.setLoop(true);
+    positionalSound.play(0);
+  });
 
   //Add controller
   //Code from WebXR Examples Hit-Test.
   //https://github.com/mrdoob/three.js/blob/master/examples/webxr_ar_hittest.html
   controller = renderer.xr.getController(0);
   controller.addEventListener("select", onSelect);
-  controller.addEventListener("select", setRandomPosition);
+  //controller.addEventListener("select", setRandomPosition, false);
   scene.add(controller);
 
   //Add TargetHitter
@@ -181,7 +183,6 @@ function init() {
   findTarget.visible = false;
   scene.add(findTarget);
 
-  //
   window.addEventListener("resize", onWindowResize);
 } //end function init()
 
@@ -192,27 +193,24 @@ function onWindowResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+//Function to spawn claptrap
+function onSelect() {
+  if (findTarget.visible) {
+    gClaptrapModel.position.setFromMatrixPosition(findTarget.matrix);
+    scene.add(gClaptrapModel);
+  }
+} //end function onSelect
+
+//Function to generate random direction vector for claptrap movement
+//not implemented yet, because animation code for the movement does crash the app
 function setRandomPosition() {
-  direction = new THREE.Vector3(
-    Math.random() * 2 - 1,
-    0,
-    Math.random() * 2 - 1
-  ).normalize();
+  direction = (Math.random() * 2 - 1, 0, Math.random() * 2 - 1);
   console.log(direction);
 }
 
 function animate() {
   renderer.setAnimationLoop(draw);
 } //end function animate()
-
-//Settings for Claptrap Animation
-let kmh = 0.05; //set pace
-var borderLeft = -5.0; //set borderLeft
-var borderRight = 5.0; //set borderRight
-let direction;
-let delta;
-var clock = new THREE.Clock();
-let shift = new THREE.Vector3();
 
 // DRAW
 function draw(time, frame) {
@@ -228,26 +226,12 @@ function draw(time, frame) {
   //Quelle Code: https://jsfiddle.net/prisoner849/qqoouo2w/
   //noch fehlerhaft, Fehlermeldung in Zeile 200 setRandomPosition
   if (gClaptrapModel) {
-    delta = clock.getDelta();
-    shift.copy(direction).multiplyScalar(delta * kmh);
-    gClaptrapModel.position.add(shift);
+    //this code does not work yet. Error in setRandomPosition function
+    // delta = clock.getDelta();
+    // shift.copy(direction).multiplyScalar(delta * kmh);
+    // gClaptrapModel.position.add(shift);
     //gClaptrapModel.translateZ(10); Frage: Richtung, in die Claptrap guckt anpassen
   }
-  // if (gClaptrapModel) {
-  //   //Initialize animation to move right
-  //   gClaptrapModel.position.x += kmh;
-  //   //if Claptrap is at a certain x-Position, turn around
-  //   if (gClaptrapModel.position.x <= borderLeft) {
-  //     kmh = Math.abs(kmh);
-  //     gClaptrapModel.rotation.y += Math.PI;
-  //     //changeLight(); //farbe wird zu zufälligen farbwert geändert
-  //   } else if (gClaptrapModel.position.x >= borderRight) {
-  //     //if Claptrap is at a certain x-Position, turn around
-  //     kmh = -Math.abs(kmh);
-  //     gClaptrapModel.rotation.y += Math.PI; //dreht um 180grad um
-  //     //changeLight();//farbe wird zu zufälligen farbwert geändert
-  //   }
-  // }
 
   //Rotation of the tire
   var tireRotationSpeed = 0.1;
@@ -303,9 +287,6 @@ function draw(time, frame) {
 
   //Render scene
   renderer.render(scene, camera);
-
-  // light.position.x = 20*Math.cos(time);
-  // light.position.y = 20*Math.sin(time);
 } //end function draw
 
 // UPDATE RESIZE
